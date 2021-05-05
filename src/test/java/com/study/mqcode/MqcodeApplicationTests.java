@@ -114,6 +114,7 @@ class MqcodeApplicationTests {
 
     /**
      * 单向消息  不关注发送结果，服务器不返回发送结果
+     *
      * @throws Exception
      */
     @Test
@@ -143,8 +144,10 @@ class MqcodeApplicationTests {
     }
 
     //=======下边是发送顺序消息==========
+
     /**
      * 顺序消息，按照顺序发送消息，消费者也按照顺序消费消息
+     *
      * @throws Exception
      */
     @Test
@@ -179,11 +182,11 @@ class MqcodeApplicationTests {
         String topic = "topic-one";
         String tag = "tag-one";
 
-        for(String s:msgs){
-            Message message=new Message(topic,tag,s.getBytes());
+        for (String s : msgs) {
+            Message message = new Message(topic, tag, s.getBytes());
 
             String[] split = s.split(",");
-            long orderId=Long.parseLong(split[0]);
+            long orderId = Long.parseLong(split[0]);
 
             /*
             MessageQueueSelector用来选择发送的队列,
@@ -206,7 +209,7 @@ class MqcodeApplicationTests {
                     Long orderId = (Long) o;
                     //订单id对队列数量取余, 相同订单id得到相同的队列索引
                     long index = orderId % list.size();
-                    System.out.println("消息已发送到: "+list.get((int) index));
+                    System.out.println("消息已发送到: " + list.get((int) index));
                     return list.get((int) index);
                 }
             }, orderId);
@@ -236,7 +239,7 @@ class MqcodeApplicationTests {
                 String name = Thread.currentThread().getName();
 
                 for (MessageExt msg : list) {
-                    System.out.println(name+" - "+ msg.getQueueId() + " - " +new String(msg.getBody()));
+                    System.out.println(name + " - " + msg.getQueueId() + " - " + new String(msg.getBody()));
                 }
                 return ConsumeOrderlyStatus.SUCCESS;
             }
@@ -245,5 +248,71 @@ class MqcodeApplicationTests {
         consumer.start();
     }
 
+    //======下边是发送延时消息========
+
+    /**
+     * 延时消息  开源版本提供了18个延时级别
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testRocketMQProduceAPIDelay() throws Exception {
+        //18个延时级别
+        //this.messageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h";
+
+        /**
+         * 创建消息发送者 并指定生产者组
+         */
+        DefaultMQProducer producer = new DefaultMQProducer("producer-one-test");
+        /**
+         * 设置nameserver，讲自己交给其管理
+         */
+        producer.setNamesrvAddr("127.0.0.1:9876");
+        producer.start();
+
+
+        //设置消息主题和消息标签
+        String topic = "topic-one";
+        String tag = "tag-one";
+
+        String msg="延时消息";
+
+        Message message=new Message(topic,tag,msg.getBytes());
+
+        message.setDelayTimeLevel(3); //设置延时级别为3级  即10s
+
+        SendResult send = producer.send(message);
+
+        System.out.println(send);
+
+    }
+
+    @Test
+    public void testRocketMQConsumerAPIDelay() throws Exception {
+        /**
+         * 创建消息消费者，有pull和push两种方式，pull需要消费者自己去拉取消息，push方式Broker会主动讲消息推送给消费者
+         *
+         * 设置消费者组，同一组消费者 必须消费相同的消息
+         */
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("consumer-test-one");
+        consumer.setNamesrvAddr("127.0.0.1:9876");
+
+        //订阅消息 主题  标签
+        consumer.subscribe("topic-one", "tag-one");
+        //监听消息
+        consumer.registerMessageListener(new MessageListenerConcurrently() {
+            @Override
+            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> list, ConsumeConcurrentlyContext consumeConcurrentlyContext) {
+                System.out.println("------------------------------");
+                for (MessageExt msg : list) {
+                    long t = System.currentTimeMillis() - msg.getBornTimestamp();
+                    System.out.println(new String(msg.getBody()) + " - 延迟: "+t);
+                }
+                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+            }
+        });
+
+        consumer.start();
+    }
 
 }
