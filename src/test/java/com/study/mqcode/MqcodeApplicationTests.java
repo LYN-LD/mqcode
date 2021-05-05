@@ -110,5 +110,39 @@ class MqcodeApplicationTests {
 
     }
 
+    //========下边是发送单向消息======
+
+    /**
+     * 单向消息  不关注发送结果，服务器不返回发送结果
+     * @throws Exception
+     */
+    @Test
+    public void testRocketMQProduceAPIOneWay() throws Exception {
+        /**
+         * 创建消息发送者 并指定生产者组
+         */
+        DefaultMQProducer producer = new DefaultMQProducer("producer-one-test");
+        /**
+         * 设置nameserver，讲自己交给其管理
+         */
+        producer.setNamesrvAddr("127.0.0.1:9876");
+        producer.start();
+
+        producer.setRetryTimesWhenSendAsyncFailed(1000);//设置异步发送失败的超时重试时间
+
+        //设置消息主题和消息标签
+        String topic = "topic-one";
+        String tag = "tag-one";
+
+        //消息
+        String msg = "测试消息";
+
+        Message message = new Message(topic, tag, msg.getBytes());
+
+        //异步发送
+        producer.sendOneway(message);
+
+    }
+
 
 }
