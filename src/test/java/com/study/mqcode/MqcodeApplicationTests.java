@@ -13,6 +13,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @SpringBootTest
@@ -315,4 +316,55 @@ class MqcodeApplicationTests {
         consumer.start();
     }
 
+    //========下边是发送批量消息
+
+    /**
+     * 批量消息
+     * 不能是延时消息  并且所有消息必须属于同一个topic，大小限制不能超过4M
+     * @throws Exception
+     */
+    @Test
+    public void testRocketMQProduceAPIList() throws Exception {
+        //初始化消息
+        String[] msgs = {
+                "15103111039,创建",
+                "15103111065,创建",
+                "15103111039,付款",
+                "15103117235,创建",
+                "15103111065,付款",
+                "15103117235,付款",
+                "15103111065,完成",
+                "15103111039,推送",
+                "15103117235,完成",
+                "15103111039,完成"
+        };
+        /**
+         * 创建消息发送者 并指定生产者组
+         */
+        DefaultMQProducer producer = new DefaultMQProducer("producer-one-test");
+        /**
+         * 设置nameserver，讲自己交给其管理
+         */
+        producer.setNamesrvAddr("127.0.0.1:9876");
+        producer.start();
+
+
+        //设置消息主题和消息标签
+        String topic = "topic-one";
+        String tag = "tag-one";
+
+        List<Message> messages=new ArrayList<>();
+
+        for (String s:msgs){
+
+            Message message=new Message(topic,tag,s.getBytes());
+            messages.add(message);
+        }
+
+
+        SendResult send = producer.send(messages);
+
+        System.out.println(send);
+
+    }
 }
