@@ -1,6 +1,7 @@
 package com.study.mqcode;
 
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
+import org.apache.rocketmq.client.consumer.MessageSelector;
 import org.apache.rocketmq.client.consumer.listener.*;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
@@ -366,5 +367,39 @@ class MqcodeApplicationTests {
 
         System.out.println(send);
 
+    }
+
+    //下边是消息过滤
+
+    /**
+     * 消息过滤主要体现在消费者方
+     * @throws Exception
+     */
+    @Test
+    public void testRocketMQConsumerAPISelector() throws Exception {
+        /**
+         * 创建消息消费者，有pull和push两种方式，pull需要消费者自己去拉取消息，push方式Broker会主动讲消息推送给消费者
+         *
+         * 设置消费者组，同一组消费者 必须消费相同的消息
+         */
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("consumer-test-one");
+        consumer.setNamesrvAddr("127.0.0.1:9876");
+
+        //订阅消息 主题  标签
+        consumer.subscribe("topic-one", MessageSelector.bySql("tag1=a || tag2=2")); //消息过滤  使用sql语法
+        //监听消息
+        consumer.registerMessageListener(new MessageListenerConcurrently() {
+            @Override
+            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> list, ConsumeConcurrentlyContext consumeConcurrentlyContext) {
+                System.out.println("------------------------------");
+                for (MessageExt msg : list) {
+                    long t = System.currentTimeMillis() - msg.getBornTimestamp();
+                    System.out.println(new String(msg.getBody()) + " - 延迟: "+t);
+                }
+                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+            }
+        });
+
+        consumer.start();
     }
 }
