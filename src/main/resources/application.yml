@@ -1,0 +1,15 @@
+rocketmq:
+  # 接收消息
+  name-server: 127.0.0.1:9876
+  producer:
+    group: my-group
+    # 其他的配置 发送超时时长
+    send-message-timeout: 3000
+    # 消息 Body 超过多大开始压缩
+    compress-message-body-threshold: 4096
+    # 限制的消息大小
+    max-message-size: 4194304
+    # 开启内部消息重试
+    retry-next-server: true
+    # 失败重试次数
+    retry-times-when-send-async-failed: 2
